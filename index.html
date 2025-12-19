@@ -631,6 +631,62 @@
                 padding: 6px 10px;
             }
         }
+
+        /* Delete Confirmation Popup */
+        #delete-confirm-popup {
+            position: absolute;
+            display: none;
+            background: var(--panel-bg);
+            border: 2px solid #ff453a;
+            border-radius: 10px;
+            padding: 14px 18px;
+            box-shadow: 0 8px 30px rgba(255, 69, 58, 0.25);
+            z-index: 100;
+            animation: shakePopIn 0.25s ease;
+        }
+
+        @keyframes shakePopIn {
+            0% {
+                transform: scale(0.8);
+                opacity: 0;
+            }
+
+            70% {
+                transform: scale(1.05);
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        #delete-confirm-popup p {
+            margin: 0 0 12px 0;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-main);
+        }
+
+        #delete-confirm-popup .popup-btns {
+            display: flex;
+            gap: 8px;
+        }
+
+        #delete-confirm-popup .btn-delete {
+            background: #ff453a;
+            color: #fff;
+            border: none;
+            flex: 1;
+        }
+
+        #delete-confirm-popup .btn-delete:hover {
+            background: #e03e34;
+        }
+
+        #delete-confirm-popup .btn-cancel {
+            flex: 1;
+        }
     </style>
 </head>
 
@@ -741,10 +797,19 @@
         </ul>
     </div>
 
+    <!-- Delete Confirmation Popup -->
+    <div id="delete-confirm-popup">
+        <p>Delete selected?</p>
+        <div class="popup-btns">
+            <button class="btn-delete" id="delete-confirm-yes">Delete</button>
+            <button class="btn-cancel" id="delete-confirm-no">Cancel</button>
+        </div>
+    </div>
+
     <textarea id="text-editor"></textarea>
 
     <div id="hint">Middle Click: Pan • Scroll: Zoom • Right Click: Menu<br>Ctrl+Click Line: Delete • Shift+Drag: Select
-        • <kbd>C</kbd>: Connect
+        • <kbd>C</kbd>+Click: Circle • <kbd>B</kbd>+Click: Square
     </div>
 
     <!-- Mobile Hint -->
@@ -849,7 +914,19 @@
                 touchStartPos: { x: 0, y: 0 },
                 panThresholdMet: false,
                 wasTap: false,
-                deselectTimer: null
+                deselectTimer: null,
+
+                // Keyboard shortcuts
+                keysPressed: { c: false, b: false },
+
+                // Shake-to-delete tracking
+                shakeTracking: {
+                    active: false,
+                    startTime: 0,
+                    positions: [],  // Array of {x, y, time}
+                    lastVelocityX: 0,
+                    directionChanges: 0
+                }
             },
 
             init() {
@@ -1054,6 +1131,17 @@
                     }
                 });
 
+                window.addEventListener('mousedown', e => {
+                    if (!e.target.closest('#delete-confirm-popup')) {
+                        const popup = document.getElementById('delete-confirm-popup');
+                        if (popup && popup.style.display === 'block') {
+                            // Don't close if we are just starting to show it (shake logic)
+                            // But mousedown is for NEW clicks.
+                            popup.style.display = 'none';
+                        }
+                    }
+                });
+
                 this.canvas.addEventListener('mousedown', e => this.onDown(e));
                 window.addEventListener('mousemove', e => this.onMove(e));
                 window.addEventListener('mouseup', e => this.onUp(e));
@@ -1061,6 +1149,7 @@
                 this.canvas.addEventListener('dblclick', e => this.onDblClick(e));
 
                 window.addEventListener('keydown', e => this.onKey(e));
+                window.addEventListener('keyup', e => this.onKeyUp(e));
 
                 document.getElementById('cm-circle').onclick = () => this.addNode('circle');
                 document.getElementById('cm-square').onclick = () => this.addNode('square');
@@ -1088,6 +1177,13 @@
 
                 document.getElementById('btn-save').onclick = () => this.saveFile();
                 document.getElementById('file-input').onchange = e => this.loadFile(e);
+
+                // Delete confirmation popup buttons
+                document.getElementById('delete-confirm-yes').onclick = () => {
+                    this.deleteSelected();
+                    this.hideDeleteConfirm();
+                };
+                document.getElementById('delete-confirm-no').onclick = () => this.hideDeleteConfirm();
 
                 // Touch events for mobile
                 this.canvas.addEventListener('touchstart', e => this.onTouchStart(e), { passive: false });
@@ -1162,6 +1258,17 @@
                 }
 
                 if (e.button === 0) {
+                    // Check for keyboard shortcuts: C/B + Click to create nodes
+                    if (this.state.keysPressed.c || this.state.keysPressed.b) {
+                        this.state.contextLoc = pos;
+                        const nodeType = this.state.keysPressed.c ? 'circle' : 'square';
+                        this.addNode(nodeType);
+                        // Reset key state
+                        this.state.keysPressed.c = false;
+                        this.state.keysPressed.b = false;
+                        return;
+                    }
+
                     if (e.ctrlKey && this.checkLineClick(pos)) return;
 
                     const resizeItem = this.checkResize(pos);
@@ -1252,6 +1359,10 @@
                     });
 
                     this.state.dragStart = pos; // reset anchor
+
+                    // Shake detection while dragging
+                    this.trackShakeGesture(e.clientX, e.clientY);
+
                     this.draw();
                     return;
                 }
@@ -1275,6 +1386,21 @@
             },
 
             onUp(e) {
+                // Check if releasing over delete confirmation buttons
+                const popup = document.getElementById('delete-confirm-popup');
+                if (popup.style.display === 'block') {
+                    if (e.target.closest('#delete-confirm-yes')) {
+                        this.deleteSelected();
+                        this.hideDeleteConfirm();
+                        this.state.dragging = false;
+                        this.resetShakeTracking();
+                        return;
+                    } else if (e.target.closest('#delete-confirm-no')) {
+                        this.hideDeleteConfirm();
+                        // Continue to standard cleanup to stop dragging
+                    }
+                }
+
                 if (this.state.dragging || this.state.resizing) this.saveState();
 
                 // FIXED: Clean up temp array
@@ -1299,7 +1425,112 @@
                 this.state.boxSelecting = false;
                 this.state.resizeItem = null;
                 this.canvas.style.cursor = 'default';
+
+                // Reset shake tracking
+                this.resetShakeTracking();
+
                 this.draw();
+            },
+
+            // ============ SHAKE-TO-DELETE DETECTION ============
+
+            trackShakeGesture(clientX, clientY) {
+                if (!this.state.selection.length) return;
+
+                const now = performance.now();
+                const shake = this.state.shakeTracking;
+
+                // Initialize tracking
+                if (!shake.active) {
+                    shake.active = true;
+                    shake.startTime = now;
+                    shake.positions = [];
+                    shake.directionChanges = 0;
+                    shake.lastVelocityX = 0;
+                }
+
+                // Add current position
+                shake.positions.push({ x: clientX, y: clientY, time: now });
+
+                // Keep only positions from the last 500ms
+                shake.positions = shake.positions.filter(p => now - p.time < 500);
+
+                // Need at least 3 positions to detect shake
+                if (shake.positions.length < 3) return;
+
+                // Calculate bounding box of recent movement
+                const xs = shake.positions.map(p => p.x);
+                const ys = shake.positions.map(p => p.y);
+                const minX = Math.min(...xs), maxX = Math.max(...xs);
+                const minY = Math.min(...ys), maxY = Math.max(...ys);
+                const boundingWidth = maxX - minX;
+                const boundingHeight = maxY - minY;
+
+                // Check if movement is bounded (within ~300px diameter - increased from 120)
+                if (boundingWidth > 300 || boundingHeight > 300) {
+                    // Movement too large, reset
+                    this.resetShakeTracking();
+                    return;
+                }
+
+                // Calculate current velocity
+                const lastPos = shake.positions[shake.positions.length - 1];
+                const prevPos = shake.positions[shake.positions.length - 2];
+                const dt = (lastPos.time - prevPos.time) / 1000; // seconds
+                if (dt <= 0) return;
+
+                const velocityX = (lastPos.x - prevPos.x) / dt;
+
+                // Detect direction change (high velocity in opposite direction)
+                if (Math.abs(velocityX) > 800) {  // Increased velocity threshold from 600
+                    if (shake.lastVelocityX !== 0 &&
+                        Math.sign(velocityX) !== Math.sign(shake.lastVelocityX)) {
+                        shake.directionChanges++;
+                    }
+                    shake.lastVelocityX = velocityX;
+                }
+
+                // Check if shake threshold is met
+                const duration = now - shake.startTime;
+                if (duration >= 400 && shake.directionChanges >= 6) {
+                    // Shake detected!
+                    this.showDeleteConfirm(clientX, clientY);
+                    this.resetShakeTracking();
+                }
+            },
+
+            resetShakeTracking() {
+                this.state.shakeTracking = {
+                    active: false,
+                    startTime: 0,
+                    positions: [],
+                    lastVelocityX: 0,
+                    directionChanges: 0
+                };
+            },
+
+            showDeleteConfirm(clientX, clientY) {
+                const popup = document.getElementById('delete-confirm-popup');
+
+                // Position popup near mouse, keeping on screen
+                let x = clientX + 20;
+                let y = clientY - 30;
+
+                if (x + 150 > window.innerWidth) x = clientX - 170;
+                if (y + 80 > window.innerHeight) y = window.innerHeight - 90;
+                if (y < 10) y = 10;
+                if (x < 10) x = 10;
+
+                popup.style.left = x + 'px';
+                popup.style.top = y + 'px';
+                popup.style.display = 'block';
+
+                // Vibrate for feedback
+                if (navigator.vibrate) navigator.vibrate([50, 30, 50]);
+            },
+
+            hideDeleteConfirm() {
+                document.getElementById('delete-confirm-popup').style.display = 'none';
             },
 
             onWheel(e) {
@@ -1762,9 +1993,19 @@
 
                 if (e.key === 'Delete' || e.key === 'Backspace') this.deleteSelected();
 
-                // C key to connect selected nodes (without Ctrl)
+                // Track C/B keys for shortcuts (set on keydown)
                 if ((e.key === 'c' || e.key === 'C') && !e.ctrlKey && !e.metaKey) {
-                    this.connectSelected();
+                    // If not used for connecting, track the key
+                    if (this.state.selection.filter(n => n.title === undefined).length < 2) {
+                        this.state.keysPressed.c = true;
+                    } else {
+                        // Connect selected nodes
+                        this.connectSelected();
+                    }
+                    return;
+                }
+                if ((e.key === 'b' || e.key === 'B') && !e.ctrlKey && !e.metaKey) {
+                    this.state.keysPressed.b = true;
                     return;
                 }
 
@@ -1795,6 +2036,12 @@
                         }
                     }
                 }
+            },
+
+            onKeyUp(e) {
+                // Release tracked keys
+                if (e.key === 'c' || e.key === 'C') this.state.keysPressed.c = false;
+                if (e.key === 'b' || e.key === 'B') this.state.keysPressed.b = false;
             },
 
             // Grid drawing
@@ -2257,7 +2504,7 @@
                         this.state.selection = [];
                         this.updateInspector();
                         this.draw();
-                    }, 300);
+                    }, 1000);
                 }
 
                 this.state.draggedChildren = [];
@@ -2309,4 +2556,3 @@
 </body>
 
 </html>
-
