@@ -1,0 +1,1658 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mindy</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <style>
+        :root {
+            --bg-app: #f5f5f7;
+            --panel-bg: rgba(255, 255, 255, 0.9);
+            --text-main: #1d1d1f;
+            --text-sub: #86868b;
+            --border: #d2d2d7;
+            --accent: #0071e3;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            --radius: 10px;
+            --input-bg: #eeeeee;
+        }
+
+        body.dark-mode {
+            --bg-app: rgb(23, 23, 23);
+            --panel-bg: rgba(40, 40, 40, 0.9);
+            --text-main: #f5f5f7;
+            --text-sub: #a1a1a6;
+            --border: #424245;
+            --accent: #0a84ff;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            --input-bg: #333333;
+        }
+
+        * {
+            box-sizing: border-box;
+            outline: none;
+            user-select: none;
+        }
+
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-app);
+            color: var(--text-main);
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        canvas {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 0;
+        }
+
+        /* UI PANELS */
+        .panel {
+            position: absolute;
+            background: var(--panel-bg);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 12px 16px;
+            box-shadow: var(--shadow);
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        /* Top Bar */
+        #top-bar {
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            flex-direction: row;
+            align-items: center;
+            gap: 15px;
+            height: 50px;
+        }
+
+        input[type="text"],
+        input[type="number"] {
+            background: var(--input-bg);
+            border: none;
+            border-radius: 5px;
+            padding: 6px 8px;
+            color: var(--text-main);
+            font-size: 13px;
+            user-select: text;
+        }
+
+        #doc-title {
+            font-weight: 600;
+            text-align: center;
+            width: 140px;
+        }
+
+        #doc-title:focus {
+            border: 1px solid var(--accent);
+        }
+
+        /* Buttons & Colors */
+        button {
+            background: var(--input-bg);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            border-radius: 5px;
+            padding: 6px 12px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition: 0.2s;
+        }
+
+        button:hover {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+        }
+
+        .color-wrap {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 12px;
+        }
+
+        input[type="color"] {
+            -webkit-appearance: none;
+            border: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            cursor: pointer;
+            overflow: hidden;
+            padding: 0;
+            background: none;
+        }
+
+        input[type="color"]::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+
+        input[type="color"]::-webkit-color-swatch {
+            border: 1px solid var(--border);
+            border-radius: 50%;
+        }
+
+        /* Toggle Switch */
+        .toggle-switch {
+            position: relative;
+            width: 34px;
+            height: 18px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 14px;
+            width: 14px;
+            left: 2px;
+            bottom: 2px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked+.slider {
+            background-color: var(--accent);
+        }
+
+        input:checked+.slider:before {
+            transform: translateX(16px);
+        }
+
+        /* Left Inspector */
+        #inspector {
+            top: 80px;
+            left: 15px;
+            width: 220px;
+        }
+
+        .inspector-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        label {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: var(--text-sub);
+            font-weight: 700;
+        }
+
+        /* Context Menu */
+        #context-menu {
+            display: none;
+            position: absolute;
+            background: var(--panel-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            z-index: 100;
+            width: 160px;
+            padding: 5px 0;
+        }
+
+        #context-menu li {
+            list-style: none;
+            padding: 8px 15px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        #context-menu li:hover {
+            background: var(--accent);
+            color: white;
+        }
+
+        #context-menu ul {
+            margin: 0;
+            padding: 0;
+        }
+
+        .sep {
+            border-top: 1px solid var(--border);
+            margin: 4px 0;
+        }
+
+        /* Text Editor */
+        #text-editor {
+            position: absolute;
+            display: none;
+            background: transparent;
+            border: none;
+            text-align: center;
+            resize: none;
+            z-index: 50;
+            padding: 0;
+            margin: 0;
+            font-family: inherit;
+            user-select: text;
+        }
+
+        #hint {
+            position: absolute;
+            bottom: 15px;
+            right: 55px;
+            color: var(--text-sub);
+            font-size: 11px;
+            text-align: right;
+            pointer-events: none;
+        }
+
+        /* Help Button */
+        #help-btn {
+            position: fixed;
+            bottom: 15px;
+            right: 15px;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--panel-bg);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            z-index: 20;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--shadow);
+            transition: all 0.2s;
+        }
+
+        #help-btn:hover {
+            background: var(--accent);
+            color: white;
+            transform: scale(1.1);
+        }
+
+        /* Intro Modal */
+        #intro-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        #intro-modal {
+            background: var(--panel-bg);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 30px 40px;
+            max-width: 480px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(30px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        #intro-modal h2 {
+            margin: 0 0 10px 0;
+            font-size: 24px;
+            color: var(--text-main);
+        }
+
+        #intro-modal p {
+            margin: 0 0 15px 0;
+            color: var(--text-sub);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        #intro-modal ul {
+            margin: 0 0 20px 0;
+            padding-left: 20px;
+            color: var(--text-main);
+            font-size: 13px;
+            line-height: 1.8;
+        }
+
+        #intro-modal ul li {
+            margin-bottom: 5px;
+        }
+
+        #intro-modal kbd {
+            background: var(--input-bg);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+
+        .intro-footer {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid var(--border);
+        }
+
+        #intro-close {
+            padding: 12px 32px;
+            font-size: 14px;
+            font-weight: 600;
+            background: #34c759;
+            color: white;
+            border: none;
+            border-radius: 8px;
+        }
+
+        #intro-close:hover {
+            background: #2db84d;
+        }
+
+        /* Recent Files */
+        .recent-files {
+            margin-top: 5px;
+            max-height: 120px;
+            overflow-y: auto;
+        }
+
+        .recent-file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 8px;
+            margin: 2px 0;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            color: var(--text-main);
+            transition: background 0.2s;
+        }
+
+        .recent-file-item:hover {
+            background: var(--input-bg);
+        }
+
+        .recent-file-name {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 120px;
+        }
+
+        .recent-file-time {
+            font-size: 10px;
+            color: var(--text-sub);
+        }
+    </style>
+</head>
+
+<body>
+
+    <canvas id="canvas"></canvas>
+
+    <!-- Top Bar -->
+    <div id="top-bar" class="panel">
+        <input type="text" id="doc-title" value="My MindMap">
+        <div style="width:1px; height:20px; background:var(--border);"></div>
+        <div class="color-wrap">
+            <span>BG</span>
+            <input type="color" id="doc-bg-color" value="#f5f5f7">
+        </div>
+        <div style="width:1px; height:20px; background:var(--border);"></div>
+        <div class="color-wrap">
+            <span>Grid</span>
+            <label class="toggle-switch">
+                <input type="checkbox" id="grid-toggle">
+                <span class="slider"></span>
+            </label>
+        </div>
+        <div style="width:1px; height:20px; background:var(--border);"></div>
+        <div class="color-wrap">
+            <span>Dark</span>
+            <label class="toggle-switch">
+                <input type="checkbox" id="theme-toggle">
+                <span class="slider"></span>
+            </label>
+        </div>
+        <div style="width:1px; height:20px; background:var(--border);"></div>
+        <button onclick="app.undo()" title="Ctrl+Z">Undo</button>
+        <button onclick="app.redo()" title="Ctrl+Y">Redo</button>
+    </div>
+
+    <!-- Inspector -->
+    <div id="inspector" class="panel">
+        <label>Inspector</label>
+        <div id="msg" style="font-size:13px; color:var(--text-sub); font-style:italic; padding:5px 0;">Select an object
+        </div>
+
+        <div id="props" style="display:none; flex-direction:column; gap:10px;">
+            <div class="inspector-row">
+                <label>Label</label>
+                <input type="text" id="prop-label" style="width:60%;">
+            </div>
+            <div class="inspector-row">
+                <label>Fill</label>
+                <input type="color" id="prop-color">
+            </div>
+            <div class="inspector-row" id="row-text-col">
+                <label>Text</label>
+                <input type="color" id="prop-text-color">
+            </div>
+        </div>
+
+        <div style="border-top:1px solid var(--border);"></div>
+        <div style="display:flex; gap:5px;">
+            <button style="flex:1;" id="btn-save">Save</button>
+            <button style="flex:1;" onclick="document.getElementById('file-input').click()">Load</button>
+        </div>
+        <input type="file" id="file-input" accept=".json" style="display:none;">
+
+        <!-- Recent Files Section -->
+        <div id="recent-files-section" style="display:none;">
+            <div style="border-top:1px solid var(--border); margin-top:5px;"></div>
+            <label style="margin-top:8px;">Recent Saves</label>
+            <div id="recent-files-list" class="recent-files"></div>
+        </div>
+    </div>
+
+    <!-- Context Menu -->
+    <div id="context-menu">
+        <ul>
+            <li id="cm-circle">Add Circle</li>
+            <li id="cm-square">Add Square</li>
+            <div class="sep"></div>
+            <li id="cm-connect">Connect Selected</li>
+            <li id="cm-disconnect">Disconnect</li>
+            <li id="cm-group">Group Selected</li>
+            <div class="sep"></div>
+            <li id="cm-ungroup">Ungroup</li>
+            <li id="cm-delete" style="color:#ff453a;">Delete</li>
+        </ul>
+    </div>
+
+    <textarea id="text-editor"></textarea>
+
+    <div id="hint">Middle Click: Pan • Scroll: Zoom • Right Click: Menu<br>Ctrl+Click Line: Delete • Shift+Drag: Select
+        • <kbd>C</kbd>: Connect
+    </div>
+
+    <!-- Help Button -->
+    <button id="help-btn" onclick="app.showIntro()" title="Help">?</button>
+
+    <!-- Intro Modal -->
+    <div id="intro-overlay">
+        <div id="intro-modal">
+            <h2>✨ Welcome to Mindy</h2>
+            <p>A beautiful, minimalist mind mapping tool for organizing your thoughts and ideas.</p>
+
+            <ul>
+                <li><strong>Right-click</strong> on canvas to add circles or squares</li>
+                <li><strong>Drag</strong> nodes to reposition them</li>
+                <li><strong>Shift+Drag</strong> to select multiple nodes at once</li>
+                <li><strong>Double-click</strong> a node to edit its text</li>
+                <li>Select 2+ nodes, then press <kbd>C</kbd> or right-click → Connect</li>
+                <li><strong>Scroll</strong> to zoom in/out</li>
+                <li><strong>Middle-click + Drag</strong> or click empty space to pan</li>
+                <li><strong>Ctrl+Click</strong> on a line to delete it</li>
+            </ul>
+
+            <div class="intro-footer">
+                <button id="intro-close" onclick="app.hideIntro()">Get Started</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * APPLICATION CORE
+         */
+        const app = {
+            canvas: document.getElementById('canvas'),
+            ctx: document.getElementById('canvas').getContext('2d'),
+
+            // Config
+            config: {
+                minZoom: 0.1, maxZoom: 4.0,
+                nodeRadius: 60,
+                nodeColor: '#ffffff',
+                nodeColorDark: '#333333',
+                groupColor: 'rgba(60, 60, 60, 1',
+                selectionColor: '#0071e3'
+            },
+
+            // State
+            state: {
+                nodes: [],
+                edges: [], // {from: id, to: id}
+                groups: [], // {id, x, y, w, h, title}
+                docTitle: "My MindMap",
+                docColor: "#f5f5f7",
+                darkMode: false,
+                gridEnabled: true,
+                camera: { x: 0, y: 0, zoom: 1 },
+                selection: [],
+                history: [],
+                historyStep: -1,
+                nextId: 1,
+
+                // Interaction flags
+                dragging: false,
+                panning: false,
+                resizing: false,
+                boxSelecting: false,
+                editing: null,
+
+                // Temp vars
+                dragStart: { x: 0, y: 0 },
+                lastMouse: { x: 0, y: 0 },
+                boxStart: { x: 0, y: 0 },
+                boxCurrent: { x: 0, y: 0 },
+                resizeItem: null,
+                clipboard: null,
+                contextLoc: { x: 0, y: 0 },
+
+                // NEW: Store children being dragged so we don't pick up new ones
+                draggedChildren: [],
+
+                // Track save state
+                hasUnsavedChanges: false,
+                loadedFromRecentIndex: -1,  // -1 means new/not from recents
+                lastSavedState: null
+            },
+
+            init() {
+                this.resize();
+                window.addEventListener('resize', () => this.resize());
+                this.saveState();
+                this.draw();
+                this.bindEvents();
+                this.checkTheme();
+                this.updateRecentFiles();
+
+                // Sync grid toggle with default state
+                document.getElementById('grid-toggle').checked = this.state.gridEnabled;
+
+                // Show intro on first visit
+                if (!localStorage.getItem('mindmap_intro_shown')) {
+                    this.showIntro();
+                }
+            },
+
+            resize() {
+                this.canvas.width = window.innerWidth;
+                this.canvas.height = window.innerHeight;
+                this.draw();
+            },
+
+            drawRoundedRect(x, y, w, h, r) {
+                if (w < 2 * r) r = w / 2;
+                if (h < 2 * r) r = h / 2;
+                this.ctx.beginPath();
+                this.ctx.moveTo(x + r, y);
+                this.ctx.arcTo(x + w, y, x + w, y + h, r);
+                this.ctx.arcTo(x + w, y + h, x, y + h, r);
+                this.ctx.arcTo(x, y + h, x, y, r);
+                this.ctx.arcTo(x, y, x + w, y, r);
+                this.ctx.closePath();
+            },
+
+            draw() {
+                const { ctx, canvas, state } = this;
+                // Clear
+                ctx.fillStyle = state.docColor;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // Draw Grid (when enabled)
+                if (state.gridEnabled) {
+                    this.drawGrid();
+                }
+
+                ctx.save();
+                ctx.translate(state.camera.x, state.camera.y);
+                ctx.scale(state.camera.zoom, state.camera.zoom);
+
+                // 1. Draw Groups
+                state.groups.forEach(g => {
+                    const selected = state.selection.includes(g);
+                    ctx.fillStyle = g.color || this.config.groupColor;
+                    ctx.strokeStyle = selected ? this.config.selectionColor : 'rgba(0,0,0,0.1)';
+                    ctx.lineWidth = 2 / state.camera.zoom;
+
+                    this.drawRoundedRect(g.x, g.y, g.w, g.h, 12);
+                    ctx.fill();
+                    ctx.stroke();
+
+                    // Group Title - use contrasting color based on group fill
+                    const groupIsLight = this.isLightColor(g.color || this.config.groupColor);
+                    ctx.fillStyle = groupIsLight ? 'rgba(0,0,0,0.7)' : 'rgba(255,255,255,0.9)';
+                    ctx.font = "bold 14px sans-serif";
+                    ctx.textAlign = "left";
+                    ctx.textBaseline = "top";
+
+                    // FIXED: Hide title if editing this specific group
+                    if (state.editing !== g) {
+                        ctx.fillText(g.title, g.x + 10, g.y + 10);
+                    }
+
+                    if (selected) this.drawResizeHandle(g.x + g.w, g.y + g.h);
+                });
+
+                // 2. Draw Lines
+                ctx.strokeStyle = state.darkMode ? "#666" : "#ccc";
+                ctx.lineWidth = 2;
+                state.edges.forEach(e => {
+                    const n1 = state.nodes.find(n => n.id === e.from);
+                    const n2 = state.nodes.find(n => n.id === e.to);
+                    if (n1 && n2) {
+                        ctx.beginPath();
+                        ctx.moveTo(n1.x + n1.w / 2, n1.y + n1.h / 2);
+                        ctx.lineTo(n2.x + n2.w / 2, n2.y + n2.h / 2);
+                        ctx.stroke();
+                    }
+                });
+
+                // 3. Draw Nodes
+                state.nodes.forEach(n => {
+                    const selected = state.selection.includes(n);
+                    ctx.fillStyle = n.color;
+                    ctx.lineWidth = selected ? 3 : 1;
+                    ctx.strokeStyle = selected ? this.config.selectionColor : (state.darkMode ? '#555' : '#ccc');
+
+                    // Shadow
+                    ctx.shadowColor = selected ? this.config.selectionColor : "rgba(0,0,0,0.2)";
+                    ctx.shadowBlur = selected ? 15 : 5;
+
+                    this.ctx.beginPath();
+                    if (n.type === 'square') {
+                        this.drawRoundedRect(n.x, n.y, n.w, n.h, 8);
+                    } else {
+                        this.ctx.ellipse(n.x + n.w / 2, n.y + n.h / 2, n.w / 2, n.h / 2, 0, 0, Math.PI * 2);
+                    }
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                    ctx.stroke();
+
+                    // Text
+                    // FIXED: Ensure text is hidden if editing
+                    if (state.editing !== n) {
+                        ctx.fillStyle = n.textColor;
+                        ctx.font = `${n.fontSize}px sans-serif`;
+                        ctx.textAlign = "center";
+                        ctx.textBaseline = "middle";
+                        this.wrapText(ctx, n.text, n.x + n.w / 2, n.y + n.h / 2, n.w - 10, n.fontSize * 1.2);
+                    }
+
+                    if (selected) this.drawResizeHandle(n.x + n.w, n.y + n.h);
+                });
+
+                // 4. Selection Box
+                if (state.boxSelecting) {
+                    const { x, y } = state.boxStart;
+                    const w = state.boxCurrent.x - x;
+                    const h = state.boxCurrent.y - y;
+                    ctx.fillStyle = "rgba(0, 113, 227, 0.1)";
+                    ctx.strokeStyle = "#0071e3";
+                    ctx.lineWidth = 1 / state.camera.zoom;
+                    ctx.fillRect(x, y, w, h);
+                    ctx.strokeRect(x, y, w, h);
+                }
+
+                ctx.restore();
+            },
+
+            drawResizeHandle(x, y) {
+                this.ctx.fillStyle = this.state.darkMode ? '#fff' : '#666';
+                this.ctx.beginPath();
+                this.ctx.arc(x - 8, y - 8, 5, 0, Math.PI * 2);
+                this.ctx.fill();
+            },
+
+            wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+                const words = text.split(' ');
+                let line = '';
+                let lines = [];
+
+                for (let n = 0; n < words.length; n++) {
+                    let testLine = line + words[n] + ' ';
+                    let metrics = ctx.measureText(testLine);
+                    if (metrics.width > maxWidth && n > 0) {
+                        lines.push(line);
+                        line = words[n] + ' ';
+                    } else {
+                        line = testLine;
+                    }
+                }
+                lines.push(line);
+
+                let startY = y - ((lines.length - 1) * lineHeight) / 2;
+                for (let k = 0; k < lines.length; k++) {
+                    ctx.fillText(lines[k], x, startY + (k * lineHeight));
+                }
+            },
+
+            bindEvents() {
+                window.addEventListener('contextmenu', e => {
+                    e.preventDefault();
+                    const menu = document.getElementById('context-menu');
+                    if (e.target === this.canvas) {
+                        const pos = this.getPointerPos(e);
+                        this.state.contextLoc = pos;
+                        menu.style.display = 'block';
+                        menu.style.left = e.clientX + 'px';
+                        menu.style.top = e.clientY + 'px';
+                    } else {
+                        menu.style.display = 'none';
+                    }
+                });
+
+                window.addEventListener('click', e => {
+                    if (!e.target.closest('#context-menu')) {
+                        document.getElementById('context-menu').style.display = 'none';
+                    }
+                });
+
+                this.canvas.addEventListener('mousedown', e => this.onDown(e));
+                window.addEventListener('mousemove', e => this.onMove(e));
+                window.addEventListener('mouseup', e => this.onUp(e));
+                this.canvas.addEventListener('wheel', e => this.onWheel(e), { passive: false });
+                this.canvas.addEventListener('dblclick', e => this.onDblClick(e));
+
+                window.addEventListener('keydown', e => this.onKey(e));
+
+                document.getElementById('cm-circle').onclick = () => this.addNode('circle');
+                document.getElementById('cm-square').onclick = () => this.addNode('square');
+                document.getElementById('cm-connect').onclick = () => this.connectSelected();
+                document.getElementById('cm-disconnect').onclick = () => this.disconnectSelected();
+                document.getElementById('cm-group').onclick = () => this.createGroup();
+                document.getElementById('cm-ungroup').onclick = () => this.ungroup();
+                document.getElementById('cm-delete').onclick = () => this.deleteSelected();
+
+                document.getElementById('prop-label').oninput = e => this.updateProp('text', e.target.value);
+                document.getElementById('prop-color').oninput = e => this.updateProp('color', e.target.value);
+                document.getElementById('prop-text-color').oninput = e => this.updateProp('textColor', e.target.value);
+
+                document.getElementById('doc-title').oninput = e => { this.state.docTitle = e.target.value; this.saveState(); };
+                document.getElementById('doc-bg-color').oninput = e => { this.state.docColor = e.target.value; this.draw(); };
+                document.getElementById('theme-toggle').onchange = e => {
+                    this.state.darkMode = e.target.checked;
+                    this.checkTheme();
+                    // Update canvas background when toggling dark mode
+                    this.state.docColor = e.target.checked ? 'rgb(23, 23, 23)' : '#f5f5f7';
+                    document.getElementById('doc-bg-color').value = this.state.docColor;
+                    this.draw();
+                };
+                document.getElementById('grid-toggle').onchange = e => { this.state.gridEnabled = e.target.checked; this.draw(); };
+
+                document.getElementById('btn-save').onclick = () => this.saveFile();
+                document.getElementById('file-input').onchange = e => this.loadFile(e);
+            },
+
+            getPointerPos(e) {
+                const rect = this.canvas.getBoundingClientRect();
+                const mx = e.clientX - rect.left;
+                const my = e.clientY - rect.top;
+                return {
+                    x: (mx - this.state.camera.x) / this.state.camera.zoom,
+                    y: (my - this.state.camera.y) / this.state.camera.zoom,
+                    screenX: mx, screenY: my
+                };
+            },
+
+            onDown(e) {
+                if (document.activeElement) document.activeElement.blur();
+                if (this.state.editing) this.stopEditing();
+
+                const pos = this.getPointerPos(e);
+                this.state.dragStart = pos;
+                this.state.lastMouse = { x: e.clientX, y: e.clientY };
+
+                if (e.button === 1) {
+                    this.state.panning = true;
+                    this.canvas.style.cursor = 'grabbing';
+                    return;
+                }
+
+                if (e.button === 0) {
+                    if (e.ctrlKey && this.checkLineClick(pos)) return;
+
+                    const resizeItem = this.checkResize(pos);
+                    if (resizeItem) {
+                        this.state.resizing = true;
+                        this.state.resizeItem = resizeItem;
+                        return;
+                    }
+
+                    let hit = this.hitTest(pos);
+
+                    if (hit) {
+                        if (e.shiftKey) {
+                            const idx = this.state.selection.indexOf(hit);
+                            if (idx > -1) this.state.selection.splice(idx, 1);
+                            else this.state.selection.push(hit);
+                        } else {
+                            if (!this.state.selection.includes(hit)) {
+                                this.state.selection = [hit];
+                            }
+                        }
+
+                        this.state.dragging = true;
+
+                        // FIXED: LOGIC TO IDENTIFY CHILDREN OF SELECTED GROUPS ONCE (On Click)
+                        this.state.draggedChildren = [];
+                        this.state.selection.forEach(selItem => {
+                            if (selItem.title !== undefined) { // If it is a group
+                                // Find all nodes inside this group that are NOT currently selected (to avoid double moving)
+                                this.state.nodes.forEach(n => {
+                                    // Check if center of node is inside the group bounds
+                                    if (!this.state.selection.includes(n) &&
+                                        n.x + n.w / 2 > selItem.x && n.x + n.w / 2 < selItem.x + selItem.w &&
+                                        n.y + n.h / 2 > selItem.y && n.y + n.h / 2 < selItem.y + selItem.h
+                                    ) {
+                                        // Add to temp list if not already added
+                                        if (!this.state.draggedChildren.includes(n)) {
+                                            this.state.draggedChildren.push(n);
+                                        }
+                                    }
+                                });
+                            }
+                        });
+
+                        this.updateInspector();
+                    } else {
+                        if (e.shiftKey) {
+                            this.state.boxSelecting = true;
+                            this.state.boxStart = pos;
+                            this.state.boxCurrent = pos;
+                            this.state.selection = [];
+                        } else {
+                            this.state.panning = true;
+                            this.state.selection = [];
+                            this.canvas.style.cursor = 'grabbing';
+                        }
+                        this.updateInspector();
+                    }
+                    this.draw();
+                }
+            },
+
+            onMove(e) {
+                const pos = this.getPointerPos(e);
+
+                if (this.state.panning) {
+                    this.state.camera.x += (e.clientX - this.state.lastMouse.x);
+                    this.state.camera.y += (e.clientY - this.state.lastMouse.y);
+                    this.state.lastMouse = { x: e.clientX, y: e.clientY };
+                    this.draw();
+                    return;
+                }
+
+                if (this.state.dragging) {
+                    const dx = pos.x - this.state.dragStart.x;
+                    const dy = pos.y - this.state.dragStart.y;
+
+                    // Move Explicit Selection
+                    this.state.selection.forEach(item => {
+                        item.x += dx;
+                        item.y += dy;
+                    });
+
+                    // FIXED: Move the pre-calculated children (only those that were inside when we clicked)
+                    this.state.draggedChildren.forEach(child => {
+                        child.x += dx;
+                        child.y += dy;
+                    });
+
+                    this.state.dragStart = pos; // reset anchor
+                    this.draw();
+                    return;
+                }
+
+                if (this.state.resizing && this.state.resizeItem) {
+                    const item = this.state.resizeItem;
+                    item.w = Math.max(40, pos.x - item.x);
+                    item.h = Math.max(40, pos.y - item.y);
+                    this.draw();
+                    return;
+                }
+
+                if (this.state.boxSelecting) {
+                    this.state.boxCurrent = pos;
+                    this.draw();
+                    return;
+                }
+
+                this.canvas.style.cursor = 'default';
+                if (this.checkResize(pos)) this.canvas.style.cursor = 'nwse-resize';
+            },
+
+            onUp(e) {
+                if (this.state.dragging || this.state.resizing) this.saveState();
+
+                // FIXED: Clean up temp array
+                this.state.draggedChildren = [];
+
+                if (this.state.boxSelecting) {
+                    const x1 = Math.min(this.state.boxStart.x, this.state.boxCurrent.x);
+                    const x2 = Math.max(this.state.boxStart.x, this.state.boxCurrent.x);
+                    const y1 = Math.min(this.state.boxStart.y, this.state.boxCurrent.y);
+                    const y2 = Math.max(this.state.boxStart.y, this.state.boxCurrent.y);
+
+                    this.state.nodes.forEach(n => {
+                        if (n.x + n.w / 2 > x1 && n.x + n.w / 2 < x2 && n.y + n.h / 2 > y1 && n.y + n.h / 2 < y2)
+                            this.state.selection.push(n);
+                    });
+                    this.updateInspector();
+                }
+
+                this.state.panning = false;
+                this.state.dragging = false;
+                this.state.resizing = false;
+                this.state.boxSelecting = false;
+                this.state.resizeItem = null;
+                this.canvas.style.cursor = 'default';
+                this.draw();
+            },
+
+            onWheel(e) {
+                e.preventDefault();
+                const dir = e.deltaY > 0 ? -1 : 1;
+                const scale = 1 + (0.1 * dir);
+                const pos = this.getPointerPos(e);
+
+                const wx = (pos.screenX - this.state.camera.x) / this.state.camera.zoom;
+                const wy = (pos.screenY - this.state.camera.y) / this.state.camera.zoom;
+
+                let newZoom = this.state.camera.zoom * scale;
+                newZoom = Math.max(this.config.minZoom, Math.min(newZoom, this.config.maxZoom));
+
+                this.state.camera.x = pos.screenX - wx * newZoom;
+                this.state.camera.y = pos.screenY - wy * newZoom;
+                this.state.camera.zoom = newZoom;
+                this.draw();
+            },
+
+            onDblClick(e) {
+                const pos = this.getPointerPos(e);
+                const hit = this.hitTest(pos);
+                if (hit) this.startEditing(hit);
+            },
+
+            checkResize(pos) {
+                const handle = 12;
+                for (let item of this.state.selection) {
+                    if (pos.x >= item.x + item.w - handle && pos.x <= item.x + item.w &&
+                        pos.y >= item.y + item.h - handle && pos.y <= item.y + item.h) {
+                        return item;
+                    }
+                }
+                return null;
+            },
+
+            hitTest(pos) {
+                for (let i = this.state.nodes.length - 1; i >= 0; i--) {
+                    const n = this.state.nodes[i];
+                    if (pos.x >= n.x && pos.x <= n.x + n.w && pos.y >= n.y && pos.y <= n.y + n.h) return n;
+                }
+                for (let i = this.state.groups.length - 1; i >= 0; i--) {
+                    const g = this.state.groups[i];
+                    if (pos.x >= g.x && pos.x <= g.x + g.w && pos.y >= g.y && pos.y <= g.y + g.h) return g;
+                }
+                return null;
+            },
+
+            checkLineClick(pos) {
+                const threshold = 8 / this.state.camera.zoom;
+                const idx = this.state.edges.findIndex(e => {
+                    const n1 = this.state.nodes.find(n => n.id === e.from);
+                    const n2 = this.state.nodes.find(n => n.id === e.to);
+                    if (!n1 || !n2) return false;
+
+                    const c1 = { x: n1.x + n1.w / 2, y: n1.y + n1.h / 2 };
+                    const c2 = { x: n2.x + n2.w / 2, y: n2.y + n2.h / 2 };
+
+                    const A = pos.x - c1.x; const B = pos.y - c1.y;
+                    const C = c2.x - c1.x; const D = c2.y - c1.y;
+                    const dot = A * C + B * D;
+                    const lenSq = C * C + D * D;
+                    let param = -1;
+                    if (lenSq !== 0) param = dot / lenSq;
+
+                    let xx, yy;
+                    if (param < 0) { xx = c1.x; yy = c1.y; }
+                    else if (param > 1) { xx = c2.x; yy = c2.y; }
+                    else { xx = c1.x + param * C; yy = c1.y + param * D; }
+
+                    const dx = pos.x - xx; const dy = pos.y - yy;
+                    return Math.sqrt(dx * dx + dy * dy) < threshold;
+                });
+
+                if (idx !== -1) {
+                    this.state.edges.splice(idx, 1);
+                    this.saveState();
+                    this.draw();
+                    return true;
+                }
+                return false;
+            },
+
+            addNode(type) {
+                const n = {
+                    id: this.state.nextId++,
+                    type: type,
+                    x: this.state.contextLoc.x,
+                    y: this.state.contextLoc.y,
+                    w: 120, h: type === 'circle' ? 120 : 80,
+                    text: "New Node",
+                    color: this.state.darkMode ? this.config.nodeColorDark : this.config.nodeColor,
+                    textColor: this.state.darkMode ? '#fff' : '#000',
+                    fontSize: 16
+                };
+                this.state.nodes.push(n);
+                document.getElementById('context-menu').style.display = 'none';
+                this.saveState();
+                this.draw();
+            },
+
+            createGroup() {
+                const sel = this.state.selection;
+                if (!sel.length) return;
+
+                let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+                sel.forEach(o => {
+                    minX = Math.min(minX, o.x);
+                    minY = Math.min(minY, o.y);
+                    maxX = Math.max(maxX, o.x + o.w);
+                    maxY = Math.max(maxY, o.y + o.h);
+                });
+
+                const pad = 30;
+                const g = {
+                    id: this.state.nextId++,
+                    title: "Group",
+                    x: minX - pad, y: minY - pad - 20,
+                    w: (maxX - minX) + pad * 2, h: (maxY - minY) + pad * 2 + 20,
+                    color: this.config.groupColor
+                };
+                this.state.groups.push(g);
+                this.state.selection = [g];
+                document.getElementById('context-menu').style.display = 'none';
+                this.saveState();
+                this.draw();
+                this.updateInspector();
+            },
+
+            ungroup() {
+                const gs = this.state.selection.filter(x => x.title !== undefined);
+                this.state.groups = this.state.groups.filter(g => !gs.includes(g));
+                this.state.selection = [];
+                document.getElementById('context-menu').style.display = 'none';
+                this.saveState();
+                this.draw();
+            },
+
+            connectSelected() {
+                const nodes = this.state.selection.filter(n => n.title === undefined);
+                if (nodes.length > 1) {
+                    for (let i = 0; i < nodes.length - 1; i++) {
+                        this.state.edges.push({ from: nodes[i].id, to: nodes[i + 1].id });
+                    }
+                    this.saveState();
+                }
+                document.getElementById('context-menu').style.display = 'none';
+                this.draw();
+            },
+
+            disconnectSelected() {
+                const nodes = this.state.selection.filter(n => n.title === undefined);
+                const ids = nodes.map(n => n.id);
+                this.state.edges = this.state.edges.filter(e => !ids.includes(e.from) && !ids.includes(e.to));
+                this.saveState();
+                document.getElementById('context-menu').style.display = 'none';
+                this.draw();
+            },
+
+            deleteSelected() {
+                const nodes = this.state.selection.filter(x => x.title === undefined);
+                const groups = this.state.selection.filter(x => x.title !== undefined);
+
+                this.state.nodes = this.state.nodes.filter(n => !nodes.includes(n));
+                this.state.groups = this.state.groups.filter(g => !groups.includes(g));
+
+                const ids = nodes.map(n => n.id);
+                this.state.edges = this.state.edges.filter(e => !ids.includes(e.from) && !ids.includes(e.to));
+
+                this.state.selection = [];
+                document.getElementById('context-menu').style.display = 'none';
+                this.saveState();
+                this.draw();
+                this.updateInspector();
+            },
+
+            startEditing(item) {
+                this.state.editing = item;
+                const ed = document.getElementById('text-editor');
+                const z = this.state.camera.zoom;
+                const sX = (item.x * z) + this.state.camera.x;
+                const sY = (item.y * z) + this.state.camera.y;
+
+                ed.style.display = 'block';
+                ed.value = item.title !== undefined ? item.title : item.text;
+
+                ed.style.left = sX + 'px';
+                ed.style.width = (item.w * z) + 'px';
+
+                if (item.title !== undefined) { // Group
+                    ed.style.top = (sY + 5) + 'px';
+                    ed.style.height = '30px';
+                    ed.style.color = this.state.darkMode ? '#fff' : '#000';
+                    ed.style.textAlign = 'left';
+                } else { // Node
+                    ed.style.top = (sY + (item.h * z) / 2 - 12) + 'px';
+                    ed.style.height = (item.h * z) + 'px';
+                    ed.style.color = item.textColor;
+                    ed.style.fontSize = (item.fontSize * z) + 'px';
+                    ed.style.textAlign = 'center';
+                }
+                ed.focus();
+
+                // FIXED: Force redraw immediately to hide canvas text behind editor
+                this.draw();
+            },
+
+            stopEditing() {
+                if (!this.state.editing) return;
+                const val = document.getElementById('text-editor').value;
+                if (this.state.editing.title !== undefined) this.state.editing.title = val;
+                else this.state.editing.text = val;
+
+                this.state.editing = null;
+                document.getElementById('text-editor').style.display = 'none';
+                this.saveState();
+                this.draw();
+            },
+
+            updateInspector() {
+                const sel = this.state.selection;
+                const p = document.getElementById('props');
+                const msg = document.getElementById('msg');
+
+                if (sel.length === 1) {
+                    p.style.display = 'flex';
+                    msg.style.display = 'none';
+                    const item = sel[0];
+
+                    document.getElementById('prop-label').value = item.title || item.text;
+                    document.getElementById('prop-color').value = item.color;
+
+                    if (item.title === undefined) {
+                        document.getElementById('row-text-col').style.display = 'flex';
+                        document.getElementById('prop-text-color').value = item.textColor;
+                    } else {
+                        document.getElementById('row-text-col').style.display = 'none';
+                    }
+                } else {
+                    p.style.display = 'none';
+                    msg.style.display = 'block';
+                    msg.innerText = sel.length ? `${sel.length} items selected` : 'Select an object';
+                }
+            },
+
+            updateProp(key, val) {
+                if (!this.state.selection.length) return;
+                const item = this.state.selection[0];
+                if (key === 'text') {
+                    if (item.title !== undefined) item.title = val; else item.text = val;
+                } else {
+                    item[key] = val;
+                }
+                this.saveState();
+                this.draw();
+            },
+
+            checkTheme() {
+                if (this.state.darkMode) {
+                    document.body.classList.add('dark-mode');
+                } else {
+                    document.body.classList.remove('dark-mode');
+                }
+            },
+
+            saveState() {
+                const json = JSON.stringify({
+                    nodes: this.state.nodes, edges: this.state.edges, groups: this.state.groups,
+                    docTitle: this.state.docTitle, docColor: this.state.docColor, darkMode: this.state.darkMode
+                });
+
+                if (this.state.historyStep > -1 && this.state.history[this.state.historyStep] === json) return;
+
+                if (this.state.historyStep < this.state.history.length - 1) {
+                    this.state.history = this.state.history.slice(0, this.state.historyStep + 1);
+                }
+                this.state.history.push(json);
+                this.state.historyStep++;
+                if (this.state.history.length > 50) {
+                    this.state.history.shift();
+                    this.state.historyStep--;
+                }
+
+                // Mark as having unsaved changes if different from last saved
+                if (this.state.lastSavedState && json !== this.state.lastSavedState) {
+                    this.state.hasUnsavedChanges = true;
+                }
+            },
+
+            undo() {
+                if (this.state.historyStep > 0) {
+                    this.state.historyStep--;
+                    this.loadJSON(this.state.history[this.state.historyStep]);
+                }
+            },
+
+            redo() {
+                if (this.state.historyStep < this.state.history.length - 1) {
+                    this.state.historyStep++;
+                    this.loadJSON(this.state.history[this.state.historyStep]);
+                }
+            },
+
+            saveFile() {
+                const data = {
+                    version: 4.0,
+                    ...JSON.parse(this.state.history[this.state.historyStep])
+                };
+                const currentState = this.state.history[this.state.historyStep];
+
+                // Check if there are actual changes
+                if (!this.state.hasUnsavedChanges && this.state.lastSavedState === currentState) {
+                    alert('No changes to save.');
+                    return;
+                }
+
+                const savedFiles = JSON.parse(localStorage.getItem('mindmap_saved_files') || '[]');
+
+                // Helper to generate unique name
+                const getUniqueName = (baseName) => {
+                    const existingNames = savedFiles.map(f => f.name);
+                    if (!existingNames.includes(baseName)) return baseName;
+
+                    let counter = 1;
+                    let newName = `${baseName} (${counter})`;
+                    while (existingNames.includes(newName)) {
+                        counter++;
+                        newName = `${baseName} (${counter})`;
+                    }
+                    return newName;
+                };
+
+                // Check if loaded from recents and ask to override
+                if (this.state.loadedFromRecentIndex >= 0 && this.state.loadedFromRecentIndex < savedFiles.length) {
+                    const overwrite = confirm('Do you want to update the existing save, or create a new one?\n\nClick OK to update, Cancel for new save.');
+                    if (overwrite) {
+                        // Update existing entry
+                        savedFiles[this.state.loadedFromRecentIndex] = {
+                            name: this.state.docTitle || 'mindmap',
+                            timestamp: Date.now(),
+                            data: data
+                        };
+                        localStorage.setItem('mindmap_saved_files', JSON.stringify(savedFiles));
+                    } else {
+                        // Create new entry with unique name
+                        const uniqueName = getUniqueName(this.state.docTitle || 'mindmap');
+                        savedFiles.push({
+                            name: uniqueName,
+                            timestamp: Date.now(),
+                            data: data
+                        });
+                        while (savedFiles.length > 5) savedFiles.shift();
+                        localStorage.setItem('mindmap_saved_files', JSON.stringify(savedFiles));
+                        // Update index to point to new entry
+                        this.state.loadedFromRecentIndex = savedFiles.length - 1;
+                    }
+                } else {
+                    // New file, add with unique name
+                    const uniqueName = getUniqueName(this.state.docTitle || 'mindmap');
+                    savedFiles.push({
+                        name: uniqueName,
+                        timestamp: Date.now(),
+                        data: data
+                    });
+                    while (savedFiles.length > 5) savedFiles.shift();
+                    localStorage.setItem('mindmap_saved_files', JSON.stringify(savedFiles));
+                    this.state.loadedFromRecentIndex = savedFiles.length - 1;
+                }
+
+                // Download the file
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = (this.state.docTitle || 'mindmap') + '.json';
+                a.click();
+
+                // Mark as saved
+                this.state.lastSavedState = currentState;
+                this.state.hasUnsavedChanges = false;
+                this.updateRecentFiles();
+            },
+
+            loadFile(e) {
+                const f = e.target.files[0];
+                if (!f) return;
+                const r = new FileReader();
+                r.onload = evt => {
+                    try {
+                        const data = JSON.parse(evt.target.result);
+                        this.loadJSON(evt.target.result);
+                        this.saveState();
+
+                        // Add loaded file to recents
+                        const savedFiles = JSON.parse(localStorage.getItem('mindmap_saved_files') || '[]');
+                        savedFiles.push({
+                            name: data.docTitle || f.name.replace('.json', '') || 'Loaded File',
+                            timestamp: Date.now(),
+                            data: data
+                        });
+                        while (savedFiles.length > 5) savedFiles.shift();
+                        localStorage.setItem('mindmap_saved_files', JSON.stringify(savedFiles));
+
+                        // Track that this was loaded from file (new entry at end)
+                        this.state.loadedFromRecentIndex = savedFiles.length - 1;
+                        this.state.lastSavedState = this.state.history[this.state.historyStep];
+                        this.state.hasUnsavedChanges = false;
+                        this.updateRecentFiles();
+                    } catch (err) { alert("Invalid File"); }
+                };
+                r.readAsText(f);
+                e.target.value = '';
+            },
+
+            loadJSON(str) {
+                const d = JSON.parse(str);
+                this.state.nodes = d.nodes || [];
+                this.state.edges = d.edges || [];
+                this.state.groups = d.groups || [];
+                this.state.docTitle = d.docTitle || "Untitled";
+                this.state.docColor = d.docColor || "#f5f5f7";
+                this.state.darkMode = !!d.darkMode;
+                this.state.selection = [];
+
+                let maxId = 0;
+                [...this.state.nodes, ...this.state.groups].forEach(o => maxId = Math.max(maxId, o.id));
+                this.state.nextId = maxId + 1;
+
+                document.getElementById('doc-title').value = this.state.docTitle;
+                document.getElementById('doc-bg-color').value = this.state.docColor;
+                document.getElementById('theme-toggle').checked = this.state.darkMode;
+                this.checkTheme();
+                this.draw();
+            },
+
+            onKey(e) {
+                if (this.state.editing) {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault(); this.stopEditing();
+                    }
+                    return;
+                }
+
+                if (document.activeElement.tagName === 'INPUT') return;
+
+                if (e.key === 'Delete' || e.key === 'Backspace') this.deleteSelected();
+
+                // C key to connect selected nodes (without Ctrl)
+                if ((e.key === 'c' || e.key === 'C') && !e.ctrlKey && !e.metaKey) {
+                    this.connectSelected();
+                    return;
+                }
+
+                if (e.ctrlKey || e.metaKey) {
+                    if (e.key === 'z' || e.key === 'Z') {
+                        e.preventDefault();
+                        e.shiftKey ? this.redo() : this.undo();
+                    }
+                    if (e.key === 'y' || e.key === 'Y') {
+                        e.preventDefault(); this.redo();
+                    }
+                    if (e.key === 'c' || e.key === 'C') {
+                        const sel = this.state.selection.filter(x => x.title === undefined);
+                        if (sel.length) this.state.clipboard = JSON.stringify(sel);
+                    }
+                    if (e.key === 'v' || e.key === 'V') {
+                        if (this.state.clipboard) {
+                            const copies = JSON.parse(this.state.clipboard);
+                            this.state.selection = [];
+                            copies.forEach(c => {
+                                c.id = this.state.nextId++;
+                                c.x += 20; c.y += 20;
+                                this.state.nodes.push(c);
+                                this.state.selection.push(c);
+                            });
+                            this.saveState();
+                            this.draw();
+                        }
+                    }
+                }
+            },
+
+            // Grid drawing
+            drawGrid() {
+                const { ctx, canvas, state } = this;
+                const gridSize = 50;
+                const zoom = state.camera.zoom;
+                const scaledGrid = gridSize * zoom;
+
+                // Calculate visible area in world space
+                const startX = -state.camera.x / zoom;
+                const startY = -state.camera.y / zoom;
+                const endX = startX + canvas.width / zoom;
+                const endY = startY + canvas.height / zoom;
+
+                // Grid line style - dynamically contrast against background color
+                const bgColor = state.docColor;
+                const isLightBg = this.isLightColor(bgColor);
+                ctx.strokeStyle = isLightBg ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.12)';
+                ctx.lineWidth = 1;
+
+                ctx.save();
+                ctx.translate(state.camera.x, state.camera.y);
+                ctx.scale(zoom, zoom);
+
+                // Snap to grid boundaries
+                const gridStartX = Math.floor(startX / gridSize) * gridSize;
+                const gridStartY = Math.floor(startY / gridSize) * gridSize;
+
+                // Draw vertical lines
+                ctx.beginPath();
+                for (let x = gridStartX; x <= endX; x += gridSize) {
+                    ctx.moveTo(x, startY);
+                    ctx.lineTo(x, endY);
+                }
+                // Draw horizontal lines
+                for (let y = gridStartY; y <= endY; y += gridSize) {
+                    ctx.moveTo(startX, y);
+                    ctx.lineTo(endX, y);
+                }
+                ctx.stroke();
+                ctx.restore();
+            },
+
+            // Intro modal
+            showIntro() {
+                document.getElementById('intro-overlay').style.display = 'flex';
+            },
+
+            hideIntro() {
+                document.getElementById('intro-overlay').style.display = 'none';
+                // Always remember that intro was shown
+                localStorage.setItem('mindmap_intro_shown', 'true');
+            },
+
+            // Recent files management
+            updateRecentFiles() {
+                const section = document.getElementById('recent-files-section');
+                const list = document.getElementById('recent-files-list');
+                const savedFiles = JSON.parse(localStorage.getItem('mindmap_saved_files') || '[]');
+
+                if (savedFiles.length === 0) {
+                    section.style.display = 'none';
+                    return;
+                }
+
+                section.style.display = 'block';
+                list.innerHTML = '';
+
+                // Display in reverse order (newest first)
+                for (let i = savedFiles.length - 1; i >= 0; i--) {
+                    const file = savedFiles[i];
+                    const fileIndex = i; // Capture index in closure
+
+                    const item = document.createElement('div');
+                    item.className = 'recent-file-item';
+                    item.style.cursor = 'pointer';
+                    item.onclick = () => this.loadRecentFile(fileIndex);
+
+                    const nameSpan = document.createElement('span');
+                    nameSpan.className = 'recent-file-name';
+                    nameSpan.textContent = file.name || 'Untitled';
+                    nameSpan.title = `Load: ${file.name || 'Untitled'}`;
+
+                    const deleteBtn = document.createElement('span');
+                    deleteBtn.textContent = 'Delete';
+                    deleteBtn.style.cursor = 'pointer';
+                    deleteBtn.style.fontSize = '10px';
+                    deleteBtn.style.opacity = '0.5';
+                    deleteBtn.style.color = 'var(--text-sub)';
+                    deleteBtn.title = 'Delete this save';
+                    deleteBtn.onmouseenter = () => deleteBtn.style.opacity = '1';
+                    deleteBtn.onmouseleave = () => deleteBtn.style.opacity = '0.5';
+                    deleteBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        this.deleteRecentFile(fileIndex);
+                    };
+
+                    item.appendChild(nameSpan);
+                    item.appendChild(deleteBtn);
+                    list.appendChild(item);
+                }
+            },
+
+            loadRecentFile(index) {
+                const savedFiles = JSON.parse(localStorage.getItem('mindmap_saved_files') || '[]');
+                if (index >= 0 && index < savedFiles.length) {
+                    const file = savedFiles[index];
+                    if (file && file.data) {
+                        this.loadJSON(JSON.stringify(file.data));
+                        this.saveState();
+
+                        // Track which recent file this was loaded from
+                        this.state.loadedFromRecentIndex = index;
+                        this.state.lastSavedState = this.state.history[this.state.historyStep];
+                        this.state.hasUnsavedChanges = false;
+                    }
+                }
+            },
+
+            deleteRecentFile(index) {
+                const savedFiles = JSON.parse(localStorage.getItem('mindmap_saved_files') || '[]');
+                if (index >= 0 && index < savedFiles.length) {
+                    savedFiles.splice(index, 1);
+                    localStorage.setItem('mindmap_saved_files', JSON.stringify(savedFiles));
+                    this.updateRecentFiles();
+                }
+            },
+
+            // Helper to determine if a color is light or dark
+            isLightColor(color) {
+                // Parse color to get RGB values
+                let r, g, b;
+                if (color.startsWith('#')) {
+                    const hex = color.slice(1);
+                    r = parseInt(hex.substr(0, 2), 16);
+                    g = parseInt(hex.substr(2, 2), 16);
+                    b = parseInt(hex.substr(4, 2), 16);
+                } else if (color.startsWith('rgb')) {
+                    const match = color.match(/(\d+),\s*(\d+),\s*(\d+)/);
+                    if (match) {
+                        r = parseInt(match[1]);
+                        g = parseInt(match[2]);
+                        b = parseInt(match[3]);
+                    } else {
+                        return true; // Default to light
+                    }
+                } else {
+                    return true; // Default to light for unknown formats
+                }
+                // Calculate luminance
+                const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+                return luminance > 0.5;
+            }
+        };
+
+        window.onload = () => app.init();
+    </script>
+</body>
+
+</html>
