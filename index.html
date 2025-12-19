@@ -2000,6 +2000,7 @@
                             if (navigator.vibrate) navigator.vibrate([50, 30, 50]);
 
                             this.state.lastTapTime = 0;
+                            // Don't deselect - keep current selection when showing menu
                             return;
                         }
                     }
@@ -2008,8 +2009,17 @@
                     // Hit test for node
                     const hit = this.hitTest(pos);
                     if (hit) {
-                        if (!this.state.selection.includes(hit)) {
-                            this.state.selection = [hit];
+                        // Multi-select: if node is already selected, toggle it off
+                        // Otherwise, ADD it to selection (don't replace)
+                        const idx = this.state.selection.indexOf(hit);
+                        if (idx > -1) {
+                            // Already selected - if it's the only one, keep it; otherwise remove
+                            if (this.state.selection.length > 1) {
+                                this.state.selection.splice(idx, 1);
+                            }
+                        } else {
+                            // Add to selection
+                            this.state.selection.push(hit);
                         }
                         this.state.dragging = true;
 
@@ -2032,10 +2042,11 @@
                         this.updateInspector();
                     } else {
                         // Prepare for potential panning on empty space (but don't start yet)
+                        // DON'T clear selection here - only clear when panning actually starts
                         this.state.panning = true;
                         this.state.panThresholdMet = false;
                         this.state.touchStartPos = { x: pos.clientX, y: pos.clientY };
-                        this.state.selection = [];
+                        // Removed: this.state.selection = [];
                         this.updateInspector();
                     }
 
