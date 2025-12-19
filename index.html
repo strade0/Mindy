@@ -748,7 +748,7 @@
     </div>
 
     <!-- Mobile Hint -->
-    <div id="mobile-hint">Drag: Pan • Pinch: Zoom • Long-press: Menu<br>Double-tap: Edit • Two-finger tap: Select</div>
+    <div id="mobile-hint">Drag: Pan • Pinch: Zoom • Double-tap: Menu<br>Double-tap node: Edit</div>
 
     <!-- Mobile Inspector Toggle -->
     <button id="mobile-inspector-btn" onclick="app.toggleMobileInspector()" title="Inspector">⚙</button>
@@ -1976,7 +1976,29 @@
                         // Double tap detected
                         const hit = this.hitTest(pos);
                         if (hit) {
+                            // Double-tap on node = edit
                             this.startEditing(hit);
+                            this.state.lastTapTime = 0;
+                            return;
+                        } else {
+                            // Double-tap on empty canvas = show context menu
+                            this.state.contextLoc = pos;
+                            const menu = document.getElementById('context-menu');
+                            menu.style.display = 'block';
+
+                            // Position menu, keeping it on screen
+                            let menuX = pos.clientX;
+                            let menuY = pos.clientY;
+                            if (menuX + 160 > window.innerWidth) menuX = window.innerWidth - 170;
+                            if (menuY + 250 > window.innerHeight) menuY = window.innerHeight - 260;
+                            if (menuX < 10) menuX = 10;
+                            if (menuY < 10) menuY = 10;
+                            menu.style.left = menuX + 'px';
+                            menu.style.top = menuY + 'px';
+
+                            // Vibrate
+                            if (navigator.vibrate) navigator.vibrate([50, 30, 50]);
+
                             this.state.lastTapTime = 0;
                             return;
                         }
