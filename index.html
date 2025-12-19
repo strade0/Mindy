@@ -446,6 +446,191 @@
             font-size: 10px;
             color: var(--text-sub);
         }
+
+        /* Mobile Menu Button */
+        #mobile-menu-btn {
+            display: none;
+            background: transparent;
+            border: none;
+            font-size: 24px;
+            padding: 4px 8px;
+            cursor: pointer;
+            color: var(--text-main);
+        }
+
+        /* Mobile Inspector Toggle */
+        #mobile-inspector-btn {
+            display: none;
+            position: fixed;
+            bottom: 15px;
+            left: 15px;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: var(--panel-bg);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            font-size: 20px;
+            cursor: pointer;
+            z-index: 20;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--shadow);
+        }
+
+        /* Mobile Dropdown */
+        #mobile-dropdown {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--panel-bg);
+            border: 1px solid var(--border);
+            border-top: none;
+            border-radius: 0 0 var(--radius) var(--radius);
+            padding: 12px 16px;
+            flex-direction: column;
+            gap: 12px;
+            box-shadow: var(--shadow);
+        }
+
+        #mobile-dropdown.open {
+            display: flex;
+        }
+
+        .mobile-dropdown-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Mobile Hints */
+        #mobile-hint {
+            display: none;
+            position: absolute;
+            bottom: 15px;
+            right: 55px;
+            color: var(--text-sub);
+            font-size: 11px;
+            text-align: right;
+            pointer-events: none;
+        }
+
+        /* Responsive Styles */
+        @media (max-width: 768px) {
+
+            /* Top Bar - centered with equal padding on mobile */
+            #top-bar {
+                left: 50%;
+                right: auto;
+                transform: translateX(-50%);
+                width: calc(100% - 20px);
+                max-width: 400px;
+                padding: 8px 12px;
+                height: auto;
+                min-height: 46px;
+                flex-wrap: wrap;
+                position: relative;
+            }
+
+            #top-bar .desktop-only {
+                display: none;
+            }
+
+            #mobile-menu-btn {
+                display: block;
+            }
+
+            #doc-title {
+                width: auto;
+                flex: 1;
+                min-width: 80px;
+                max-width: 150px;
+            }
+
+            /* Inspector - hidden by default on mobile */
+            #inspector {
+                display: none;
+                position: fixed;
+                top: auto;
+                bottom: 70px;
+                left: 10px;
+                right: auto;
+                width: calc(100% - 20px);
+                max-width: 300px;
+                max-height: 50vh;
+                overflow-y: auto;
+                z-index: 15;
+            }
+
+            #inspector.mobile-open {
+                display: flex;
+            }
+
+            #mobile-inspector-btn {
+                display: flex;
+            }
+
+            /* Larger touch targets */
+            button {
+                min-height: 36px;
+                padding: 8px 14px;
+            }
+
+            /* Hints */
+            #hint {
+                display: none;
+            }
+
+            #mobile-hint {
+                display: block;
+            }
+
+            /* Help button - actual corner on mobile */
+            #help-btn {
+                bottom: 15px;
+                right: 15px;
+            }
+
+            /* Intro modal - full width on mobile */
+            #intro-modal {
+                width: 95%;
+                padding: 20px;
+                max-height: 90vh;
+                overflow-y: auto;
+            }
+
+            #intro-modal h2 {
+                font-size: 20px;
+            }
+
+            #intro-modal ul {
+                font-size: 12px;
+                padding-left: 15px;
+            }
+
+            /* Context menu - ensure it fits on screen */
+            #context-menu {
+                max-width: calc(100vw - 20px);
+            }
+        }
+
+        @media (max-width: 480px) {
+            #top-bar {
+                top: 10px;
+            }
+
+            #doc-title {
+                max-width: 100px;
+                font-size: 12px;
+            }
+
+            button {
+                font-size: 11px;
+                padding: 6px 10px;
+            }
+        }
     </style>
 </head>
 
@@ -455,31 +640,54 @@
 
     <!-- Top Bar -->
     <div id="top-bar" class="panel">
+        <button id="mobile-menu-btn" onclick="app.toggleMobileMenu()">☰</button>
         <input type="text" id="doc-title" value="My MindMap">
-        <div style="width:1px; height:20px; background:var(--border);"></div>
-        <div class="color-wrap">
+        <div class="desktop-only" style="width:1px; height:20px; background:var(--border);"></div>
+        <div class="color-wrap desktop-only">
             <span>BG</span>
             <input type="color" id="doc-bg-color" value="#f5f5f7">
         </div>
-        <div style="width:1px; height:20px; background:var(--border);"></div>
-        <div class="color-wrap">
+        <div class="desktop-only" style="width:1px; height:20px; background:var(--border);"></div>
+        <div class="color-wrap desktop-only">
             <span>Grid</span>
             <label class="toggle-switch">
                 <input type="checkbox" id="grid-toggle">
                 <span class="slider"></span>
             </label>
         </div>
-        <div style="width:1px; height:20px; background:var(--border);"></div>
-        <div class="color-wrap">
+        <div class="desktop-only" style="width:1px; height:20px; background:var(--border);"></div>
+        <div class="color-wrap desktop-only">
             <span>Dark</span>
             <label class="toggle-switch">
                 <input type="checkbox" id="theme-toggle">
                 <span class="slider"></span>
             </label>
         </div>
-        <div style="width:1px; height:20px; background:var(--border);"></div>
+        <div class="desktop-only" style="width:1px; height:20px; background:var(--border);"></div>
         <button onclick="app.undo()" title="Ctrl+Z">Undo</button>
         <button onclick="app.redo()" title="Ctrl+Y">Redo</button>
+
+        <!-- Mobile Dropdown Menu -->
+        <div id="mobile-dropdown">
+            <div class="mobile-dropdown-row">
+                <span>Background</span>
+                <input type="color" id="doc-bg-color-mobile" value="#f5f5f7">
+            </div>
+            <div class="mobile-dropdown-row">
+                <span>Grid</span>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="grid-toggle-mobile">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div class="mobile-dropdown-row">
+                <span>Dark Mode</span>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="theme-toggle-mobile">
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </div>
     </div>
 
     <!-- Inspector -->
@@ -538,6 +746,12 @@
     <div id="hint">Middle Click: Pan • Scroll: Zoom • Right Click: Menu<br>Ctrl+Click Line: Delete • Shift+Drag: Select
         • <kbd>C</kbd>: Connect
     </div>
+
+    <!-- Mobile Hint -->
+    <div id="mobile-hint">Drag: Pan • Pinch: Zoom • Long-press: Menu<br>Double-tap: Edit • Two-finger tap: Select</div>
+
+    <!-- Mobile Inspector Toggle -->
+    <button id="mobile-inspector-btn" onclick="app.toggleMobileInspector()" title="Inspector">⚙</button>
 
     <!-- Help Button -->
     <button id="help-btn" onclick="app.showIntro()" title="Help">?</button>
@@ -620,7 +834,17 @@
                 // Track save state
                 hasUnsavedChanges: false,
                 loadedFromRecentIndex: -1,  // -1 means new/not from recents
-                lastSavedState: null
+                lastSavedState: null,
+
+                // Touch state
+                touches: [],
+                lastTouchDist: 0,
+                lastTouchCenter: { x: 0, y: 0 },
+                longPressTimer: null,
+                lastTapTime: 0,
+                isTouchDevice: false,
+                mobileMenuOpen: false,
+                mobileInspectorOpen: false
             },
 
             init() {
@@ -848,6 +1072,52 @@
 
                 document.getElementById('btn-save').onclick = () => this.saveFile();
                 document.getElementById('file-input').onchange = e => this.loadFile(e);
+
+                // Touch events for mobile
+                this.canvas.addEventListener('touchstart', e => this.onTouchStart(e), { passive: false });
+                this.canvas.addEventListener('touchmove', e => this.onTouchMove(e), { passive: false });
+                this.canvas.addEventListener('touchend', e => this.onTouchEnd(e), { passive: false });
+                this.canvas.addEventListener('touchcancel', e => this.onTouchEnd(e), { passive: false });
+
+                // Mobile dropdown controls - sync with desktop controls
+                const bgColorMobile = document.getElementById('doc-bg-color-mobile');
+                const gridToggleMobile = document.getElementById('grid-toggle-mobile');
+                const themeToggleMobile = document.getElementById('theme-toggle-mobile');
+
+                if (bgColorMobile) {
+                    bgColorMobile.oninput = e => {
+                        this.state.docColor = e.target.value;
+                        document.getElementById('doc-bg-color').value = e.target.value;
+                        this.draw();
+                    };
+                }
+
+                if (gridToggleMobile) {
+                    gridToggleMobile.onchange = e => {
+                        this.state.gridEnabled = e.target.checked;
+                        document.getElementById('grid-toggle').checked = e.target.checked;
+                        this.draw();
+                    };
+                }
+
+                if (themeToggleMobile) {
+                    themeToggleMobile.onchange = e => {
+                        this.state.darkMode = e.target.checked;
+                        document.getElementById('theme-toggle').checked = e.target.checked;
+                        this.checkTheme();
+                        this.state.docColor = e.target.checked ? 'rgb(23, 23, 23)' : '#f5f5f7';
+                        document.getElementById('doc-bg-color').value = this.state.docColor;
+                        document.getElementById('doc-bg-color-mobile').value = this.state.docColor;
+                        this.draw();
+                    };
+                }
+
+                // Close mobile menu when clicking elsewhere
+                document.addEventListener('click', e => {
+                    if (this.state.mobileMenuOpen && !e.target.closest('#top-bar')) {
+                        this.closeMobileMenu();
+                    }
+                });
             },
 
             getPointerPos(e) {
@@ -1648,6 +1918,258 @@
                 // Calculate luminance
                 const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
                 return luminance > 0.5;
+            },
+
+            // ============ TOUCH EVENT HANDLERS ============
+
+            getTouchPos(touch) {
+                const rect = this.canvas.getBoundingClientRect();
+                const mx = touch.clientX - rect.left;
+                const my = touch.clientY - rect.top;
+                return {
+                    x: (mx - this.state.camera.x) / this.state.camera.zoom,
+                    y: (my - this.state.camera.y) / this.state.camera.zoom,
+                    screenX: mx,
+                    screenY: my,
+                    clientX: touch.clientX,
+                    clientY: touch.clientY
+                };
+            },
+
+            onTouchStart(e) {
+                e.preventDefault();
+                this.state.isTouchDevice = true;
+
+                const touches = e.touches;
+                this.state.touches = Array.from(touches).map(t => this.getTouchPos(t));
+
+                // Clear any existing long press timer
+                if (this.state.longPressTimer) {
+                    clearTimeout(this.state.longPressTimer);
+                    this.state.longPressTimer = null;
+                }
+
+                if (this.state.editing) this.stopEditing();
+                document.getElementById('context-menu').style.display = 'none';
+
+                if (touches.length === 1) {
+                    const pos = this.state.touches[0];
+                    this.state.dragStart = pos;
+                    this.state.lastMouse = { x: pos.clientX, y: pos.clientY };
+
+                    // Check for double-tap
+                    const now = Date.now();
+                    if (now - this.state.lastTapTime < 300) {
+                        // Double tap detected
+                        const hit = this.hitTest(pos);
+                        if (hit) {
+                            this.startEditing(hit);
+                            this.state.lastTapTime = 0;
+                            return;
+                        }
+                    }
+                    this.state.lastTapTime = now;
+
+                    // Hit test for node
+                    const hit = this.hitTest(pos);
+                    if (hit) {
+                        if (!this.state.selection.includes(hit)) {
+                            this.state.selection = [hit];
+                        }
+                        this.state.dragging = true;
+
+                        // Identify children for group drag
+                        this.state.draggedChildren = [];
+                        this.state.selection.forEach(selItem => {
+                            if (selItem.title !== undefined) {
+                                this.state.nodes.forEach(n => {
+                                    if (!this.state.selection.includes(n) &&
+                                        n.x + n.w / 2 > selItem.x && n.x + n.w / 2 < selItem.x + selItem.w &&
+                                        n.y + n.h / 2 > selItem.y && n.y + n.h / 2 < selItem.y + selItem.h) {
+                                        if (!this.state.draggedChildren.includes(n)) {
+                                            this.state.draggedChildren.push(n);
+                                        }
+                                    }
+                                });
+                            }
+                        });
+
+                        this.updateInspector();
+                    } else {
+                        // Start panning on empty space
+                        this.state.panning = true;
+                        this.state.selection = [];
+                        this.updateInspector();
+                    }
+
+                    // Set up long press for context menu (only if not dragging a node)
+                    if (!hit) {
+                        this.state.longPressTimer = setTimeout(() => {
+                            this.state.contextLoc = pos;
+                            const menu = document.getElementById('context-menu');
+                            menu.style.display = 'block';
+                            // Position menu, keeping it on screen
+                            let menuX = pos.clientX;
+                            let menuY = pos.clientY;
+                            if (menuX + 160 > window.innerWidth) menuX = window.innerWidth - 170;
+                            if (menuY + 200 > window.innerHeight) menuY = window.innerHeight - 210;
+                            menu.style.left = menuX + 'px';
+                            menu.style.top = menuY + 'px';
+                            this.state.panning = false;
+                            // Vibrate if available
+                            if (navigator.vibrate) navigator.vibrate(50);
+                        }, 500);
+                    }
+
+                    this.draw();
+
+                } else if (touches.length === 2) {
+                    // Two-finger gesture - prepare for pinch/pan
+                    this.state.dragging = false;
+                    this.state.panning = false;
+                    if (this.state.longPressTimer) {
+                        clearTimeout(this.state.longPressTimer);
+                        this.state.longPressTimer = null;
+                    }
+
+                    const t1 = this.state.touches[0];
+                    const t2 = this.state.touches[1];
+                    this.state.lastTouchDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+                    this.state.lastTouchCenter = {
+                        x: (t1.clientX + t2.clientX) / 2,
+                        y: (t1.clientY + t2.clientY) / 2
+                    };
+                }
+            },
+
+            onTouchMove(e) {
+                e.preventDefault();
+
+                if (this.state.longPressTimer) {
+                    clearTimeout(this.state.longPressTimer);
+                    this.state.longPressTimer = null;
+                }
+
+                const touches = e.touches;
+                this.state.touches = Array.from(touches).map(t => this.getTouchPos(t));
+
+                if (touches.length === 1) {
+                    const pos = this.state.touches[0];
+
+                    if (this.state.panning) {
+                        this.state.camera.x += (pos.clientX - this.state.lastMouse.x);
+                        this.state.camera.y += (pos.clientY - this.state.lastMouse.y);
+                        this.state.lastMouse = { x: pos.clientX, y: pos.clientY };
+                        this.draw();
+                        return;
+                    }
+
+                    if (this.state.dragging) {
+                        const dx = pos.x - this.state.dragStart.x;
+                        const dy = pos.y - this.state.dragStart.y;
+
+                        this.state.selection.forEach(item => {
+                            item.x += dx;
+                            item.y += dy;
+                        });
+
+                        this.state.draggedChildren.forEach(child => {
+                            child.x += dx;
+                            child.y += dy;
+                        });
+
+                        this.state.dragStart = pos;
+                        this.draw();
+                        return;
+                    }
+
+                } else if (touches.length === 2) {
+                    const t1 = this.state.touches[0];
+                    const t2 = this.state.touches[1];
+
+                    // Calculate new distance and center
+                    const newDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+                    const newCenter = {
+                        x: (t1.clientX + t2.clientX) / 2,
+                        y: (t1.clientY + t2.clientY) / 2
+                    };
+
+                    // Pinch zoom
+                    if (this.state.lastTouchDist > 0) {
+                        const scale = newDist / this.state.lastTouchDist;
+                        const rect = this.canvas.getBoundingClientRect();
+                        const wx = (newCenter.x - rect.left - this.state.camera.x) / this.state.camera.zoom;
+                        const wy = (newCenter.y - rect.top - this.state.camera.y) / this.state.camera.zoom;
+
+                        let newZoom = this.state.camera.zoom * scale;
+                        newZoom = Math.max(this.config.minZoom, Math.min(newZoom, this.config.maxZoom));
+
+                        this.state.camera.x = (newCenter.x - rect.left) - wx * newZoom;
+                        this.state.camera.y = (newCenter.y - rect.top) - wy * newZoom;
+                        this.state.camera.zoom = newZoom;
+                    }
+
+                    // Two-finger pan
+                    const panDx = newCenter.x - this.state.lastTouchCenter.x;
+                    const panDy = newCenter.y - this.state.lastTouchCenter.y;
+                    this.state.camera.x += panDx;
+                    this.state.camera.y += panDy;
+
+                    this.state.lastTouchDist = newDist;
+                    this.state.lastTouchCenter = newCenter;
+                    this.draw();
+                }
+            },
+
+            onTouchEnd(e) {
+                if (this.state.longPressTimer) {
+                    clearTimeout(this.state.longPressTimer);
+                    this.state.longPressTimer = null;
+                }
+
+                if (this.state.dragging || this.state.resizing) {
+                    this.saveState();
+                }
+
+                this.state.draggedChildren = [];
+                this.state.panning = false;
+                this.state.dragging = false;
+                this.state.resizing = false;
+                this.state.lastTouchDist = 0;
+                this.draw();
+            },
+
+            // ============ MOBILE UI FUNCTIONS ============
+
+            toggleMobileMenu() {
+                const dropdown = document.getElementById('mobile-dropdown');
+                this.state.mobileMenuOpen = !this.state.mobileMenuOpen;
+
+                if (this.state.mobileMenuOpen) {
+                    dropdown.classList.add('open');
+                    // Sync mobile controls with current state
+                    document.getElementById('doc-bg-color-mobile').value = this.state.docColor.startsWith('rgb') ? '#171717' : this.state.docColor;
+                    document.getElementById('grid-toggle-mobile').checked = this.state.gridEnabled;
+                    document.getElementById('theme-toggle-mobile').checked = this.state.darkMode;
+                } else {
+                    dropdown.classList.remove('open');
+                }
+            },
+
+            closeMobileMenu() {
+                this.state.mobileMenuOpen = false;
+                document.getElementById('mobile-dropdown').classList.remove('open');
+            },
+
+            toggleMobileInspector() {
+                const inspector = document.getElementById('inspector');
+                this.state.mobileInspectorOpen = !this.state.mobileInspectorOpen;
+
+                if (this.state.mobileInspectorOpen) {
+                    inspector.classList.add('mobile-open');
+                } else {
+                    inspector.classList.remove('mobile-open');
+                }
             }
         };
 
