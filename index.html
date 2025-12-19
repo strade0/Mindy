@@ -848,7 +848,8 @@
                 mobileInspectorOpen: false,
                 touchStartPos: { x: 0, y: 0 },
                 panThresholdMet: false,
-                wasTap: false
+                wasTap: false,
+                deselectTimer: null
             },
 
             init() {
@@ -1979,6 +1980,12 @@
                     this.state.longPressTimer = null;
                 }
 
+                // Clear any pending deselect timer
+                if (this.state.deselectTimer) {
+                    clearTimeout(this.state.deselectTimer);
+                    this.state.deselectTimer = null;
+                }
+
                 if (this.state.editing) this.stopEditing();
                 document.getElementById('context-menu').style.display = 'none';
 
@@ -2243,11 +2250,14 @@
                     this.saveState();
                 }
 
-                // Single tap on empty space = deselect all
-                // (wasTap is true if no node was hit and no significant movement happened)
+                // Single tap on empty space = delayed deselect (1 second)
+                // This gives time for a double-tap to cancel it
                 if (this.state.wasTap && this.state.panning && !this.state.panThresholdMet) {
-                    this.state.selection = [];
-                    this.updateInspector();
+                    this.state.deselectTimer = setTimeout(() => {
+                        this.state.selection = [];
+                        this.updateInspector();
+                        this.draw();
+                    }, 1000);
                 }
 
                 this.state.draggedChildren = [];
