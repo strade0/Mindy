@@ -748,7 +748,8 @@
     </div>
 
     <!-- Mobile Hint -->
-    <div id="mobile-hint">Drag: Pan • Pinch: Zoom • Double-tap: Menu<br>Double-tap node: Edit</div>
+    <div id="mobile-hint">Tap: Select • Double-tap: Menu/Edit • Pinch: Zoom<br>Double-tap line: Disconnect • Drag
+        corner: Resize</div>
 
     <!-- Mobile Inspector Toggle -->
     <button id="mobile-inspector-btn" onclick="app.toggleMobileInspector()" title="Inspector">⚙</button>
@@ -846,7 +847,8 @@
                 mobileMenuOpen: false,
                 mobileInspectorOpen: false,
                 touchStartPos: { x: 0, y: 0 },
-                panThresholdMet: false
+                panThresholdMet: false,
+                wasTap: false
             },
 
             init() {
@@ -1334,6 +1336,18 @@
                 return null;
             },
 
+            // Touch version with larger handle area
+            checkResizeTouch(pos) {
+                const handle = 30; // Much larger for touch
+                for (let item of this.state.selection) {
+                    if (pos.x >= item.x + item.w - handle && pos.x <= item.x + item.w + 10 &&
+                        pos.y >= item.y + item.h - handle && pos.y <= item.y + item.h + 10) {
+                        return item;
+                    }
+                }
+                return null;
+            },
+
             hitTest(pos) {
                 for (let i = this.state.nodes.length - 1; i >= 0; i--) {
                     const n = this.state.nodes[i];
@@ -1346,8 +1360,10 @@
                 return null;
             },
 
-            checkLineClick(pos) {
-                const threshold = 8 / this.state.camera.zoom;
+            checkLineClick(pos, touchMode = false) {
+                // Larger threshold for touch (25px vs 8px for mouse)
+                const baseThreshold = touchMode ? 25 : 8;
+                const threshold = baseThreshold / this.state.camera.zoom;
                 const idx = this.state.edges.findIndex(e => {
                     const n1 = this.state.nodes.find(n => n.id === e.from);
                     const n2 = this.state.nodes.find(n => n.id === e.to);
@@ -1376,6 +1392,7 @@
                     this.state.edges.splice(idx, 1);
                     this.saveState();
                     this.draw();
+                    if (touchMode && navigator.vibrate) navigator.vibrate([30, 20, 30]);
                     return true;
                 }
                 return false;
@@ -1969,11 +1986,19 @@
                     const pos = this.state.touches[0];
                     this.state.dragStart = pos;
                     this.state.lastMouse = { x: pos.clientX, y: pos.clientY };
+                    this.state.wasTap = true; // Track if this was a simple tap (no movement)
 
                     // Check for double-tap
                     const now = Date.now();
                     if (now - this.state.lastTapTime < 300) {
-                        // Double tap detected
+                        // Double tap detected - check what we're tapping on
+
+                        // First check if double-tapping on a line (to disconnect)
+                        if (this.checkLineClick(pos, true)) {
+                            this.state.lastTapTime = 0;
+                            return;
+                        }
+
                         const hit = this.hitTest(pos);
                         if (hit) {
                             // Double-tap on node = edit
@@ -2006,6 +2031,17 @@
                     }
                     this.state.lastTapTime = now;
 
+                    // Check for resize handle (with larger touch area)
+                    const resizeItem = this.checkResizeTouch(pos);
+                    if (resizeItem) {
+                        this.state.resizing = true;
+                        this.state.resizeItem = resizeItem;
+                        this.state.wasTap = false;
+                        this.updateInspector();
+                        this.draw();
+                        return;
+                    }
+
                     // Hit test for node
                     const hit = this.hitTest(pos);
                     if (hit) {
@@ -2022,6 +2058,7 @@
                             this.state.selection.push(hit);
                         }
                         this.state.dragging = true;
+                        this.state.wasTap = false;
 
                         // Identify children for group drag
                         this.state.draggedChildren = [];
@@ -2042,12 +2079,11 @@
                         this.updateInspector();
                     } else {
                         // Prepare for potential panning on empty space (but don't start yet)
-                        // DON'T clear selection here - only clear when panning actually starts
+                        // Selection will be cleared on touchEnd if it was just a single tap
                         this.state.panning = true;
                         this.state.panThresholdMet = false;
                         this.state.touchStartPos = { x: pos.clientX, y: pos.clientY };
-                        // Removed: this.state.selection = [];
-                        this.updateInspector();
+                        // Keep wasTap = true, will clear selection on touchEnd if no movement
                     }
 
                     // Set up long press for context menu (only if not dragging a node)
@@ -2149,6 +2185,16 @@
                         return;
                     }
 
+                    // Handle resizing
+                    if (this.state.resizing && this.state.resizeItem) {
+                        this.state.wasTap = false;
+                        const item = this.state.resizeItem;
+                        item.w = Math.max(60, pos.x - item.x);
+                        item.h = Math.max(60, pos.y - item.y);
+                        this.draw();
+                        return;
+                    }
+
                 } else if (touches.length === 2) {
                     const t1 = this.state.touches[0];
                     const t2 = this.state.touches[1];
@@ -2197,11 +2243,20 @@
                     this.saveState();
                 }
 
+                // Single tap on empty space = deselect all
+                // (wasTap is true if no node was hit and no significant movement happened)
+                if (this.state.wasTap && this.state.panning && !this.state.panThresholdMet) {
+                    this.state.selection = [];
+                    this.updateInspector();
+                }
+
                 this.state.draggedChildren = [];
                 this.state.panning = false;
                 this.state.dragging = false;
                 this.state.resizing = false;
                 this.state.lastTouchDist = 0;
+                this.state.wasTap = false;
+                this.state.resizeItem = null;
                 this.draw();
             },
 
