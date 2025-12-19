@@ -1027,8 +1027,19 @@
                         const pos = this.getPointerPos(e);
                         this.state.contextLoc = pos;
                         menu.style.display = 'block';
-                        menu.style.left = e.clientX + 'px';
-                        menu.style.top = e.clientY + 'px';
+
+                        // Position menu, keeping it on screen
+                        let menuX = e.clientX;
+                        let menuY = e.clientY;
+                        if (menuX + 160 > window.innerWidth) menuX = window.innerWidth - 170;
+                        if (menuY + 250 > window.innerHeight) menuY = window.innerHeight - 260;
+                        if (menuX < 10) menuX = 10;
+                        if (menuY < 10) menuY = 10;
+                        menu.style.left = menuX + 'px';
+                        menu.style.top = menuY + 'px';
+
+                        // Vibrate on touch devices
+                        if (navigator.vibrate) navigator.vibrate([50, 30, 50]);
                     } else {
                         menu.style.display = 'none';
                     }
@@ -2020,8 +2031,9 @@
                             menu.style.left = menuX + 'px';
                             menu.style.top = menuY + 'px';
                             this.state.panning = false;
-                            // Vibrate if available
-                            if (navigator.vibrate) navigator.vibrate(50);
+                            this.state.panThresholdMet = false;
+                            // Vibrate firmly
+                            if (navigator.vibrate) navigator.vibrate([50, 30, 50]);
                         }, 500);
                     }
 
