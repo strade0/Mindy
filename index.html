@@ -844,7 +844,9 @@
                 lastTapTime: 0,
                 isTouchDevice: false,
                 mobileMenuOpen: false,
-                mobileInspectorOpen: false
+                mobileInspectorOpen: false,
+                touchStartPos: { x: 0, y: 0 },
+                panThresholdMet: false
             },
 
             init() {
@@ -1996,8 +1998,10 @@
 
                         this.updateInspector();
                     } else {
-                        // Start panning on empty space
+                        // Prepare for potential panning on empty space (but don't start yet)
                         this.state.panning = true;
+                        this.state.panThresholdMet = false;
+                        this.state.touchStartPos = { x: pos.clientX, y: pos.clientY };
                         this.state.selection = [];
                         this.updateInspector();
                     }
@@ -2057,6 +2061,23 @@
                     const pos = this.state.touches[0];
 
                     if (this.state.panning) {
+                        // Check if we've moved enough to actually start panning (10px threshold)
+                        if (!this.state.panThresholdMet) {
+                            const dx = pos.clientX - this.state.touchStartPos.x;
+                            const dy = pos.clientY - this.state.touchStartPos.y;
+                            const dist = Math.sqrt(dx * dx + dy * dy);
+                            if (dist < 10) {
+                                // Not enough movement yet, don't pan
+                                return;
+                            }
+                            // Threshold met, cancel long press and start panning
+                            this.state.panThresholdMet = true;
+                            if (this.state.longPressTimer) {
+                                clearTimeout(this.state.longPressTimer);
+                                this.state.longPressTimer = null;
+                            }
+                        }
+
                         this.state.camera.x += (pos.clientX - this.state.lastMouse.x);
                         this.state.camera.y += (pos.clientY - this.state.lastMouse.y);
                         this.state.lastMouse = { x: pos.clientX, y: pos.clientY };
