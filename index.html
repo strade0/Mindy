@@ -336,7 +336,7 @@
             border: 1px solid var(--border);
             border-radius: 16px;
             padding: 30px 40px;
-            max-width: 480px;
+            max-width: 800px;
             width: 90%;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
             animation: slideUp 0.3s ease;
@@ -409,6 +409,36 @@
 
         #intro-close:hover {
             background: #2db84d;
+        }
+
+        /* Intro sections - horizontal on desktop, vertical on mobile */
+        .intro-sections {
+            display: flex;
+            flex-direction: row;
+            gap: 20px;
+            margin-top: 15px;
+        }
+
+        .intro-section {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .intro-section ul {
+            padding-left: 18px;
+            margin-bottom: 0;
+        }
+
+        .intro-section li {
+            font-size: 12px;
+            margin-bottom: 4px;
+        }
+
+        @media (max-width: 768px) {
+            .intro-sections {
+                flex-direction: column;
+                gap: 10px;
+            }
         }
 
         /* Recent Files */
@@ -765,6 +795,10 @@
                 <label>Text</label>
                 <input type="color" id="prop-text-color">
             </div>
+            <div class="inspector-row" id="row-font-size">
+                <label>Size</label>
+                <input type="number" id="prop-font-size" style="width:60px;" min="8" max="72">
+            </div>
         </div>
 
         <div style="border-top:1px solid var(--border);"></div>
@@ -828,16 +862,45 @@
             <h2>✨ Welcome to Mindy</h2>
             <p>A beautiful, minimalist mind mapping tool for organizing your thoughts and ideas.</p>
 
-            <ul>
-                <li><strong>Right-click</strong> on canvas to add circles or squares</li>
-                <li><strong>Drag</strong> nodes to reposition them</li>
-                <li><strong>Shift+Drag</strong> to select multiple nodes at once</li>
-                <li><strong>Double-click</strong> a node to edit its text</li>
-                <li>Select 2+ nodes, then press <kbd>C</kbd> or right-click → Connect</li>
-                <li><strong>Scroll</strong> to zoom in/out</li>
-                <li><strong>Middle-click + Drag</strong> or click empty space to pan</li>
-                <li><strong>Ctrl+Click</strong> on a line to delete it</li>
-            </ul>
+            <div class="intro-sections">
+                <div class="intro-section">
+                    <p style="font-weight:600; margin-bottom:8px;">🖱️ Mouse Controls</p>
+                    <ul style="margin-top:0;">
+                        <li><strong>Right-click</strong> on canvas → Add circles or squares</li>
+                        <li><strong>Drag</strong> nodes to reposition them</li>
+                        <li><strong>Shift+Drag</strong> to select multiple nodes</li>
+                        <li><strong>Double-click</strong> a node to edit its text</li>
+                        <li><strong>Scroll</strong> to zoom in/out</li>
+                        <li><strong>Middle-click + Drag</strong> to pan</li>
+                        <li><strong>Ctrl+Click</strong> on a line to delete it</li>
+                    </ul>
+                </div>
+
+                <div class="intro-section">
+                    <p style="font-weight:600; margin-bottom:8px;">⌨️ Keyboard Shortcuts</p>
+                    <ul style="margin-top:0;">
+                        <li><kbd>C</kbd> + Click → Add Circle</li>
+                        <li><kbd>B</kbd> + Click → Add Square</li>
+                        <li>Select 2+ nodes, <kbd>C</kbd> → Connect</li>
+                        <li>Select nodes, <kbd>G</kbd> → Group</li>
+                        <li><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Y</kbd> → Undo / Redo</li>
+                        <li><kbd>Ctrl</kbd>+<kbd>C</kbd> / <kbd>V</kbd> → Copy / Paste</li>
+                        <li><kbd>Delete</kbd> → Delete selected</li>
+                    </ul>
+                </div>
+
+                <div class="intro-section">
+                    <p style="font-weight:600; margin-bottom:8px;">📱 Touch / Mobile</p>
+                    <ul style="margin-top:0;">
+                        <li><strong>Tap</strong> to select</li>
+                        <li><strong>Double-tap</strong> to edit or open menu</li>
+                        <li><strong>Pinch</strong> to zoom</li>
+                        <li><strong>Two-finger drag</strong> to pan</li>
+                        <li><strong>Double-tap line</strong> to disconnect</li>
+                        <li><strong>Drag corner</strong> to resize</li>
+                    </ul>
+                </div>
+            </div>
 
             <div class="intro-footer">
                 <button id="intro-close" onclick="app.hideIntro()">Get Started</button>
@@ -932,6 +995,43 @@
             init() {
                 this.resize();
                 window.addEventListener('resize', () => this.resize());
+
+                // Create default welcome nodes for first-time visitors
+                if (!localStorage.getItem('mindmap_first_nodes_shown')) {
+                    // Calculate center position in world coordinates
+                    const centerX = window.innerWidth / 2;
+                    const centerY = window.innerHeight / 2;
+
+                    // Node 1: Welcome to Mindy - positioned above center
+                    const node1 = {
+                        id: this.state.nextId++,
+                        type: 'square',
+                        x: centerX - 130,
+                        y: centerY - 160,
+                        w: 260, h: 60,
+                        text: "Welcome to Mindy",
+                        color: this.state.darkMode ? this.config.nodeColorDark : this.config.nodeColor,
+                        textColor: this.state.darkMode ? '#fff' : '#000',
+                        fontSize: 28
+                    };
+
+                    // Node 2: Instructions - positioned below node 1
+                    const node2 = {
+                        id: this.state.nextId++,
+                        type: 'square',
+                        x: centerX - 328,
+                        y: centerY - 70,
+                        w: 656, h: 90.5,
+                        text: "Find options in the bottom right, and shake this node to remove it.",
+                        color: this.state.darkMode ? this.config.nodeColorDark : this.config.nodeColor,
+                        textColor: this.state.darkMode ? '#fff' : '#000',
+                        fontSize: 20
+                    };
+
+                    this.state.nodes.push(node1, node2);
+                    localStorage.setItem('mindmap_first_nodes_shown', 'true');
+                }
+
                 this.saveState();
                 this.draw();
                 this.bindEvents();
@@ -941,10 +1041,8 @@
                 // Sync grid toggle with default state
                 document.getElementById('grid-toggle').checked = this.state.gridEnabled;
 
-                // Show intro on first visit
-                if (!localStorage.getItem('mindmap_intro_shown')) {
-                    this.showIntro();
-                }
+                // Intro popup only shows when user clicks help button
+                // Removed auto-show on first visit per user request
             },
 
             resize() {
@@ -1162,6 +1260,7 @@
                 document.getElementById('prop-label').oninput = e => this.updateProp('text', e.target.value);
                 document.getElementById('prop-color').oninput = e => this.updateProp('color', e.target.value);
                 document.getElementById('prop-text-color').oninput = e => this.updateProp('textColor', e.target.value);
+                document.getElementById('prop-font-size').oninput = e => this.updateProp('fontSize', parseInt(e.target.value) || 16);
 
                 document.getElementById('doc-title').oninput = e => { this.state.docTitle = e.target.value; this.saveState(); };
                 document.getElementById('doc-bg-color').oninput = e => { this.state.docColor = e.target.value; this.draw(); };
@@ -1636,11 +1735,11 @@
                     type: type,
                     x: this.state.contextLoc.x,
                     y: this.state.contextLoc.y,
-                    w: 120, h: type === 'circle' ? 120 : 80,
+                    w: 180, h: type === 'circle' ? 120 : 120,
                     text: "New Node",
                     color: this.state.darkMode ? this.config.nodeColorDark : this.config.nodeColor,
                     textColor: this.state.darkMode ? '#fff' : '#000',
-                    fontSize: 16
+                    fontSize: 32
                 };
                 this.state.nodes.push(n);
                 document.getElementById('context-menu').style.display = 'none';
@@ -1782,8 +1881,11 @@
                     if (item.title === undefined) {
                         document.getElementById('row-text-col').style.display = 'flex';
                         document.getElementById('prop-text-color').value = item.textColor;
+                        document.getElementById('row-font-size').style.display = 'flex';
+                        document.getElementById('prop-font-size').value = item.fontSize || 16;
                     } else {
                         document.getElementById('row-text-col').style.display = 'none';
+                        document.getElementById('row-font-size').style.display = 'none';
                     }
                 } else {
                     p.style.display = 'none';
@@ -2006,6 +2108,13 @@
                 }
                 if ((e.key === 'b' || e.key === 'B') && !e.ctrlKey && !e.metaKey) {
                     this.state.keysPressed.b = true;
+                    return;
+                }
+                // G key for grouping
+                if ((e.key === 'g' || e.key === 'G') && !e.ctrlKey && !e.metaKey) {
+                    if (this.state.selection.length > 0) {
+                        this.createGroup();
+                    }
                     return;
                 }
 
